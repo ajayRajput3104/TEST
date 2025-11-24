@@ -310,7 +310,12 @@ if is_critical:
 
 We monitored the training process over **2,000,000 timesteps**.
 
-> _[Insert Graph Images Here]_
+<p align="center">
+  <img src="TEST/graphs.jpeg"
+ width="600" title="hover text">
+  <br>
+  <em>Figure 1: Caption for your image</em>
+</p>
 
 **Graph 1: Episode Reward (`rollout/ep_rew_mean`)**
 
