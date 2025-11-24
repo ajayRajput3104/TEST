@@ -359,7 +359,7 @@ This specific metric determines if the agent learned **Priority Management**.
 
 Here is the trained agent in action.
 
-- **Blue Square:** Robot
+- **Dark Blue Square:** Robot
 - **Yellow Square:** Box
 - **Green Square:** Target Delivery Zone
 - **Cyan Square:** Charging Station
