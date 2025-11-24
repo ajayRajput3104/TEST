@@ -176,7 +176,7 @@ policy_loss_1 = advs * ratio
 policy_loss_2 = advs * th.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
 
 # We take the minimum (pessimistic bound) to be safe
-policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()`
+policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()```
 
 ### C. Testing Suite: stress_test_analytics.py
 
@@ -194,7 +194,8 @@ env.battery = start_batt
 is_critical = start_batt < 0.30   # Metric tracking logic:
 if is_critical:
     if did_charge: stats["critical_saves"] += 1 # Intelligent behavior
-    else: stats["critical_fails"] += 1          # Failed to prioritize survival```
+    else: stats["critical_fails"] += 1          # Failed to prioritize survival
+````
 
 ## 3\. Results & Performance Analysis
 
@@ -219,6 +220,7 @@ We monitored the training process over **2,000,000 timesteps**. Below is the ana
 ### B. Stress Test Results (Quantitative Table)
 
 The model warehouse_strict_agent was subjected to 1,000 randomized test episodes.
+
 ```
 | Metric        | Value    | Interpretation                                      |
 |---------------|----------|------------------------------------------------------|
@@ -291,4 +293,7 @@ Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQL
 ## 5\. Conclusion
 
 This project successfully implements a **Battery-Constrained Autonomous Agent** using Proximal Policy Optimization. By integrating resource constraints into the standard warehouse logistics problem, we created an agent capable of **dynamic decision-making**. The results—specifically the **90.6% survival rate** in critical battery states—demonstrate that Deep Reinforcement Learning is a viable solution for complex, multi-objective robotic control systems.
-````
+
+```
+
+```
