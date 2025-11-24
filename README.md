@@ -115,15 +115,19 @@ $$\\delta\_t = r\_t + \\gamma V(s\_{t+1}) - V(s\_t)$$$$\\hat{A}\_t = \\delta\_t 
 
 **Visual Logic Flow (Backward Pass):**
 
-Plaintext
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`Step T (End) --> Step T-1 --> ... --> Step 0      ^               ^                   ^      |               |                   |  [Calc Delta]    [Add Future Adv]    [Result stored]`
+`Step T (End) --> Step T-1 --> ... --> Step 0      ^               ^                   ^      |               |                   |  [Calc Delta]    [Add Future Adv]    [Result stored]`
 
 **Code Snippet:**
 
-Python
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`# From ppo_scratch.py  # We loop BACKWARDS (reversed) because GAE relies on the "next" step's advantage  for step in reversed(range(self.buffer_size)):      # Delta term represents the TD-Error (Temporal Difference)      delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]      # Recursive formula: Current Delta + Discounted Future Advantage      last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam      self.advantages[step] = last_gae_lam`
+````Python
+# From ppo_scratch.py
+# We loop BACKWARDS (reversed) because GAE relies on the "next" step's advantage
+for step in reversed(range(self.buffer_size)):
+    # Delta term represents the TD-Error (Temporal Difference)
+    delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+    # Recursive formula: Current Delta + Discounted Future Advantage
+    last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+    self.advantages[step] = last_gae_lam`
 
 #### 2\. The Actor-Critic Network (MlpPolicy)
 
@@ -131,15 +135,18 @@ We use a shared backbone network that splits into two heads.
 
 **Architecture Diagram:**
 
-Plaintext
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`State Input (8)        |  [ Shared Linear Layer 64 ]        |        +---------------------+        |                     |  [ Actor Head ]        [ Critic Head ]        |                     |     Softmax              Linear        |                     |  Action Probs (4)      Value Estimate (1)`
+`State Input (8)        |  [ Shared Linear Layer 64 ]        |        +---------------------+        |                     |  [ Actor Head ]        [ Critic Head ]        |                     |     Softmax              Linear        |                     |  Action Probs (4)      Value Estimate (1)`
 
 **Code Snippet:**
-
-Python
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`# From ppo_scratch.py  self.pi_net = nn.Sequential(*pi_layers) # Actor Network  self.vf_net = nn.Sequential(*vf_layers) # Critic Network  if self.is_discrete:      logits = self.action_head(pi_latent)      # Categorical distribution allows us to sample discrete actions (0,1,2,3)      dist = Categorical(logits=logits)`
+```Python
+# From ppo_scratch.py
+self.pi_net = nn.Sequential(*pi_layers) # Actor Network
+self.vf_net = nn.Sequential(*vf_layers) # Critic Network
+if self.is_discrete:
+    logits = self.action_head(pi_latent)
+    # Categorical distribution allows us to sample discrete actions (0,1,2,3)
+    dist = Categorical(logits=logits)
+````
 
 #### 3\. The PPO Update Loop
 
@@ -153,15 +160,23 @@ Where $r\_t(\\theta)$ is the probability ratio $\\frac{\\pi\_\\theta(a\_t|s\_t)}
 
 **Visual Logic (Clipping):**
 
-Plaintext
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML `Ratio          |      Is ratio > 1.2 ?      /          \    YES          NO     |            |  [Clip to 1.2] [Keep Ratio]     |            |     +-----+------+           |    Multiply by Advantage           |      Update Gradient`
+`Ratio          |      Is ratio > 1.2 ?      /          \    YES          NO     |            |  [Clip to 1.2] [Keep Ratio]     |            |     +-----+------+           |    Multiply by Advantage           |      Update Gradient`
 
 **Code Snippet:**
 
-Python
+````Python
+# From ppo_scratch.py
+# Ratio indicates how much more likely the action is NOW vs. when we collected data
+ratio = th.exp(log_prob - old_log_probs)
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`# From ppo_scratch.py  # Ratio indicates how much more likely the action is NOW vs. when we collected data  ratio = th.exp(log_prob - old_log_probs)  # Unclipped objective: Standard Policy Gradient  policy_loss_1 = advs * ratio  # Clipped objective: Forces ratio to stay between 0.8 and 1.2 (if epsilon=0.2)  policy_loss_2 = advs * th.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)  # We take the minimum (pessimistic bound) to be safe  policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()`
+# Unclipped objective: Standard Policy Gradient
+policy_loss_1 = advs * ratio
+
+# Clipped objective: Forces ratio to stay between 0.8 and 1.2 (if epsilon=0.2)
+policy_loss_2 = advs * th.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
+
+# We take the minimum (pessimistic bound) to be safe
+policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()`
 
 ### C. Testing Suite: stress_test_analytics.py
 
@@ -171,9 +186,15 @@ Key Snippet: Critical Battery Initialization
 
 To test "Intelligence," we force the robot to start with low battery.
 
-Python
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`# From stress_test_analytics.py  start_batt = np.random.uniform(0.15, 1.0) # Randomize battery  env.battery = start_batt  # Define "Critical" as less than 30% charge  is_critical = start_batt < 0.30   # Metric tracking logic:  if is_critical:      if did_charge: stats["critical_saves"] += 1 # Intelligent behavior      else: stats["critical_fails"] += 1          # Failed to prioritize survival`
+```Python
+# From stress_test_analytics.py
+start_batt = np.random.uniform(0.15, 1.0) # Randomize battery
+env.battery = start_batt
+# Define "Critical" as less than 30% charge
+is_critical = start_batt < 0.30   # Metric tracking logic:
+if is_critical:
+    if did_charge: stats["critical_saves"] += 1 # Intelligent behavior
+    else: stats["critical_fails"] += 1          # Failed to prioritize survival```
 
 ## 3\. Results & Performance Analysis
 
@@ -198,8 +219,13 @@ We monitored the training process over **2,000,000 timesteps**. Below is the ana
 ### B. Stress Test Results (Quantitative Table)
 
 The model warehouse_strict_agent was subjected to 1,000 randomized test episodes.
-
-**MetricValueInterpretationDuration**38.06sThe model is lightweight and highly performant.**🏆 Success Rate84.20%**The agent successfully delivers the package in vast majority of cases.**Avg Steps**23.3Matches the theoretical optimal path length for an 8x8 grid.
+```
+| Metric        | Value    | Interpretation                                      |
+|---------------|----------|------------------------------------------------------|
+| Duration      | 38.06 s  | The model is lightweight and highly performant.     |
+| Success Rate  | 84.20%   | The agent successfully delivers the package most of the time. |
+| Avg Steps     | 23.3     | Matches the theoretical optimal path length for an 8×8 grid. |
+```
 
 #### Failure Mode Analysis
 
@@ -265,3 +291,4 @@ Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQL
 ## 5\. Conclusion
 
 This project successfully implements a **Battery-Constrained Autonomous Agent** using Proximal Policy Optimization. By integrating resource constraints into the standard warehouse logistics problem, we created an agent capable of **dynamic decision-making**. The results—specifically the **90.6% survival rate** in critical battery states—demonstrate that Deep Reinforcement Learning is a viable solution for complex, multi-objective robotic control systems.
+````
