@@ -77,7 +77,7 @@ def _get_obs(self):
     ], dtype=np.float32)
 ```
 
-**Key Feature: Reward Shaping**
+**Key Feature: _Reward Shaping_**
 To prevent sparse reward issues, we implemented specific shaping logic. The step function calculates rewards based on distance changes and battery status.
 
 ```Python
@@ -97,7 +97,7 @@ if self.battery <= 0:
     terminated = True
 ```
 
-_Explanation:_ The code explicitly penalizes carrying a box to simulate weight/physics physics. The charging logic includes a cooldown to prevent the agent from "camping" on the charger to farm infinite rewards.
+**_Explanation:_** The code explicitly penalizes carrying a box to simulate weight/physics physics. The charging logic includes a cooldown to prevent the agent from "camping" on the charger to farm infinite rewards.
 
 ### B. The Algorithm: ppo_scratch.py
 
