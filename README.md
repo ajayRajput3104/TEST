@@ -49,9 +49,14 @@ The agent does not see the grid as an image; it sees a normalized vector of 8 va
 
 **Visual Representation of Input Vector:**
 
-Plaintext
-
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML `[ Robot X ] --+     [ Robot Y ]   |     [  Box X  ]   |     [  Box Y  ]   |---> [ Neural Network Input Layer ]     [ Target X]   |     [ Target Y]   |     [ Has Box ]   |     [ Battery ] --+ (Critical Decision Feature)`
+[ Robot X ] --+
+[ Robot Y ] |
+[ Box X ] |
+[ Box Y ] |----> [ Neural Network Input Layer ]
+[ Target X ] |
+[ Target Y ] |
+[ Has Box ] |
+[ Battery ] --+ (Critical Decision Feature)
 
 **Code Snippet:**
 
