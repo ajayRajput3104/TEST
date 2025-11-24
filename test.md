@@ -5,19 +5,15 @@
 
 A comprehensive implementation of a **Proximal Policy Optimization (PPO)** agent designed to solve a multi-objective warehouse logistics problem. The agent must balance task completion (delivery) with survival (battery management) in a procedurally generated environment.
 
----
-
 ## 👨‍🎓 Group Information
 
-| Name             | Roll Number |
-| ---------------- | ----------- |
-| [Student Name 1] | [Roll No 1] |
-| [Student Name 2] | [Roll No 2] |
-| [Student Name 3] | [Roll No 3] |
-| [Student Name 4] | [Roll No 4] |
-| [Student Name 5] | [Roll No 5] |
-
----
+| Name            | Roll Number | Branch |
+| --------------- | ----------- | ------ |
+| Ganesh Bhabad   | 22BDS067    | DSAI   |
+| AJAY RAJPUT     | 22BDS049    | DSAI   |
+| ANIKET SHELKE   | 22BCS010    | CSE    |
+| SHIVRAJ JAGDALE | 22BCS118    | CSE    |
+| SHREYASH KADGE  | 22BCS120    | CSE    |
 
 ## 1. Problem Statement & Motivation
 
@@ -44,26 +40,85 @@ This constrained version provides significantly higher utility because:
 
 ## 2. Codebase & Implementation Details
 
-### A. Environment Logic: `warehouse_env.py`
+### A. Environment Logic & Neural Architecture
 
-This file defines the physics, rules, and rewards of the simulation using the Gymnasium API.
+This section details how the physical world is translated into data (`warehouse_env.py`) and how the agent's "Brain" processes it (`ppo_scratch.py` / `stress_test_scratch.py`).
 
-#### Key Feature: The Observation Space
+### 1. Observation Space (The Input)
 
-The agent does not see the grid as an image; it sees a normalized vector of 8 values. This ensures fast training and generalization.
+The agent does not "see" the grid as an image (pixels). Instead, it perceives the world as a **Normalized Feature Vector of size 8**. This compact representation ensures faster training and generalization.
 
-**Visual Representation of Input Vector:**
+- **Type:** `Box(low=0, high=1, shape=(8,), dtype=float32)`
+- **Normalization:** All coordinates are divided by `grid_size` (8) to keep values between $0.0$ and $1.0$.
 
-```text
-[  Robot X  ] --+
-[  Robot Y  ]   |
-[   Box X   ]   |
-[   Box Y   ]   |----> [ Neural Network Input Layer ]
-[  Target X ]   |
-[  Target Y ]   |
-[  Has Box  ]   |
-[  Battery  ] --+ (Critical Decision Feature)
-```
+| Index | Feature Name | Value Range    | Formula / Meaning                 |
+| :---: | :----------- | :------------- | :-------------------------------- |
+| **0** | Robot X      | $[0, 1]$       | $Pos_x / GridSize$                |
+| **1** | Robot Y      | $[0, 1]$       | $Pos_y / GridSize$                |
+| **2** | Box X        | $[0, 1]$       | $Box_x / GridSize$                |
+| **3** | Box Y        | $[0, 1]$       | $Box_y / GridSize$                |
+| **4** | Target X     | $[0, 1]$       | $Target_x / GridSize$             |
+| **5** | Target Y     | $[0, 1]$       | $Target_y / GridSize$             |
+| **6** | Has Box      | $\{0.0, 1.0\}$ | $1.0$ if carrying box, else $0.0$ |
+| **7** | Battery      | $[0, 1]$       | Raw percentage ($1.0 = 100\%$)    |
+
+### 2. Action Space (The Output)
+
+The agent outputs a **Discrete Action** representing one of the four cardinal directions.
+
+- **Type:** `Discrete(4)`
+
+| Action Index | Command   | Description           |
+| :----------: | :-------- | :-------------------- |
+|    **0**     | **UP**    | Decrease Y coordinate |
+|    **1**     | **DOWN**  | Increase Y coordinate |
+|    **2**     | **LEFT**  | Decrease X coordinate |
+|    **3**     | **RIGHT** | Increase X coordinate |
+
+### 3. Neural Network Architecture (Actor-Critic)
+
+We utilize an **Actor-Critic** architecture. This means the Neural Network has two distinct "Heads" (outputs) that perform different tasks, often sharing the initial processing layers.
+
+**Visual Architecture Diagram:**
+
+````text
+       [ INPUT LAYER ]
+     (8 normalized floats)
+             |
+             v
+    [ HIDDEN LAYERS (MLP) ]
+    (e.g., 256 neurons, Tanh)
+             |
+             v
+    +--------+--------+
+    |                 |
+    v                 v
+[ ACTOR HEAD ]   [ CRITIC HEAD ]
+    |                 |
+ (Softmax)         (Linear)
+    |                 |
+    v                 v
+[ ACTION PROBS ]   [ STATE VALUE ]
+ (4 probabilities)    (1 Scalar)
+
+#### Explanation of Outputs
+
+**A. The Actor Head (Policy $\pi_\theta$)**
+* **Role:** The "Doer." It decides what action to take.
+* **Output:** A vector of 4 probabilities (summing to $1.0$).
+* **Formula:** It uses the **Softmax** function to convert raw network logits ($z$) into probabilities:
+    $$\pi(a_i|s) = \frac{e^{z_i}}{\sum_{j=0}^{3} e^{z_j}}$$
+* **Selection:**
+    * *Training:* We **sample** from this distribution (enables exploration).
+    * *Testing:* We take the **argmax** (highest probability).
+
+**B. The Critic Head (Value Function $V_\phi$)**
+* **Role:** The "Coach." It estimates how good the current state is.
+* **Output:** A single scalar number (e.g., $15.5$ or $-2.0$).
+* **Meaning:** It predicts the **Discounted Future Return** (total reward the agent expects to get from this point until the end of the episode).
+* **Formula:**
+    $$V(s) \approx \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \right]$$
+* **Why it's needed:** The Critic's prediction is compared against the actual reward received to calculate the **Advantage** (did we do better or worse than expected?), which is used to train the Actor.
 
 **Code Snippet:**
 
@@ -79,7 +134,7 @@ def _get_obs(self):
         1.0 if self.has_box else 0.0,                   # State Flag
         self.battery                                    # Critical Resource
     ], dtype=np.float32)
-```
+````
 
 #### Key Feature: Reward Shaping
 
