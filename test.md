@@ -1,10 +1,11 @@
 # 🤖 Autonomous Warehouse Agent with Battery Constraints using PPO
 
-> Course: Reinforcement Learning / AI Games
->
-> Project Type: Resource-Constrained Navigation & Logistics
+> **Course:** Reinforcement Learning / AI Games  
+> **Project Type:** Resource-Constrained Navigation & Logistics
 
-A comprehensive implementation of a Proximal Policy Optimization (PPO) agent designed to solve a multi-objective warehouse logistics problem. The agent must balance task completion (delivery) with survival (battery management) in a procedurally generated environment.
+A comprehensive implementation of a **Proximal Policy Optimization (PPO)** agent designed to solve a multi-objective warehouse logistics problem. The agent must balance task completion (delivery) with survival (battery management) in a procedurally generated environment.
+
+---
 
 ## 👨‍🎓 Group Information
 
@@ -16,7 +17,9 @@ A comprehensive implementation of a Proximal Policy Optimization (PPO) agent des
 | [Student Name 4] | [Roll No 4] |
 | [Student Name 5] | [Roll No 5] |
 
-## 1\. Problem Statement & Motivation
+---
+
+## 1. Problem Statement & Motivation
 
 ### The Challenge
 
@@ -37,19 +40,21 @@ This constrained version provides significantly higher utility because:
 3.  **Realism:** This closely mimics real-world warehouse scenarios where robot uptime and charging schedules are critical for throughput.
 4.  **Reward Shaping Complexity:** It demonstrates how to balance dense shaping rewards (distance) with sparse terminal rewards (delivery) and survival penalties (death).
 
-## 2\. Codebase & Implementation Details
+---
 
-### A. Environment Logic: warehouse_env.py
+## 2. Codebase & Implementation Details
+
+### A. Environment Logic: `warehouse_env.py`
 
 This file defines the physics, rules, and rewards of the simulation using the Gymnasium API.
 
-Key Feature: The Observation Space
+#### Key Feature: The Observation Space
 
 The agent does not see the grid as an image; it sees a normalized vector of 8 values. This ensures fast training and generalization.
 
 **Visual Representation of Input Vector:**
 
-```
+```text
 [  Robot X  ] --+
 [  Robot Y  ]   |
 [   Box X   ]   |
@@ -63,28 +68,30 @@ The agent does not see the grid as an image; it sees a normalized vector of 8 va
 **Code Snippet:**
 
 ```python
-
-#From warehouse_env.py
+# From warehouse_env.py
 
 def _get_obs(self):
     s = self.grid_size
     return np.array([
-        self.robot_pos[0] / s, self.robot_pos[1] / s, # Robot Coordinates
-        self.box_pos[0] / s, self.box_pos[1] / s, # Box Coordinates
+        self.robot_pos[0] / s, self.robot_pos[1] / s,   # Robot Coordinates
+        self.box_pos[0] / s, self.box_pos[1] / s,       # Box Coordinates
         self.target_pos[0] / s, self.target_pos[1] / s, # Target Coordinates
-        1.0 if self.has_box else 0.0, # State Flag
-        self.battery # Critical Resource
+        1.0 if self.has_box else 0.0,                   # State Flag
+        self.battery                                    # Critical Resource
     ], dtype=np.float32)
 ```
 
-**Key Feature: _Reward Shaping_**
+#### Key Feature: Reward Shaping
+
 To prevent sparse reward issues, we implemented specific shaping logic. The step function calculates rewards based on distance changes and battery status.
 
-```Python
+```python
 # From warehouse_env.py
+
 # 1. BATTERY DRAIN
 drain = 0.005 if not self.has_box else 0.01 # Drain faster if carrying load
 self.battery -= drain
+
 # 2. CHARGING LOGIC
 if new_pos == self.charger_pos:
     self.battery = 1.0
@@ -97,75 +104,111 @@ if self.battery <= 0:
     terminated = True
 ```
 
-**_Explanation:_** The code explicitly penalizes carrying a box to simulate weight/physics physics. The charging logic includes a cooldown to prevent the agent from "camping" on the charger to farm infinite rewards.
+_Explanation:_ The code explicitly penalizes carrying a box to simulate weight/physics. The charging logic includes a cooldown to prevent the agent from "camping" on the charger to farm infinite rewards.
 
-### B. The Algorithm: ppo_scratch.py
+### B. The Algorithm: `ppo_scratch.py`
 
 This file contains the "from scratch" implementation of PPO, demonstrating the mathematical mechanics of the algorithm.
 
-#### 1\. Generalized Advantage Estimation (GAE)
+#### 1. Generalized Advantage Estimation (GAE)
 
-We implement GAE inside RolloutBuffer to reduce variance in trajectory estimation.
+We implement GAE inside `RolloutBuffer` to reduce variance in trajectory estimation.
 
-Mathematical Formula:
+**Mathematical Formula:**
+The advantage $\hat{A}_t$ is calculated recursively:
 
-The advantage $\\hat{A}\_t$ is calculated recursively:
+$$\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$$
 
-$$\\delta\_t = r\_t + \\gamma V(s\_{t+1}) - V(s\_t)$$$$\\hat{A}\_t = \\delta\_t + (\\gamma \\lambda) \\hat{A}\_{t+1}$$
+$$\hat{A}_t = \delta_t + (\gamma \lambda) \hat{A}_{t+1}$$
 
 **Visual Logic Flow (Backward Pass):**
 
-`Step T (End) --> Step T-1 --> ... --> Step 0      ^               ^                   ^      |               |                   |  [Calc Delta]    [Add Future Adv]    [Result stored]`
+```text
+Step T (End) --> Step T-1 --> ... --> Step 0
+      ^               ^                 ^
+      |               |                 |
+  [Calc Delta]    [Add Future Adv]  [Result stored]
+```
 
 **Code Snippet:**
 
-````Python
+```python
 # From ppo_scratch.py
 # We loop BACKWARDS (reversed) because GAE relies on the "next" step's advantage
 for step in reversed(range(self.buffer_size)):
     # Delta term represents the TD-Error (Temporal Difference)
     delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+
     # Recursive formula: Current Delta + Discounted Future Advantage
     last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-    self.advantages[step] = last_gae_lam`
+    self.advantages[step] = last_gae_lam
+```
 
-#### 2\. The Actor-Critic Network (MlpPolicy)
+#### 2. The Actor-Critic Network (`MlpPolicy`)
 
 We use a shared backbone network that splits into two heads.
 
 **Architecture Diagram:**
 
-`State Input (8)        |  [ Shared Linear Layer 64 ]        |        +---------------------+        |                     |  [ Actor Head ]        [ Critic Head ]        |                     |     Softmax              Linear        |                     |  Action Probs (4)      Value Estimate (1)`
+```text
+State Input (8)
+      |
+[ Shared Linear Layer 64 ]
+      |
+      +---------------------+
+      |                     |
+[ Actor Head ]        [ Critic Head ]
+      |                     |
+   Softmax               Linear
+      |                     |
+Action Probs (4)      Value Estimate (1)
+```
 
 **Code Snippet:**
-```Python
+
+```python
 # From ppo_scratch.py
 self.pi_net = nn.Sequential(*pi_layers) # Actor Network
 self.vf_net = nn.Sequential(*vf_layers) # Critic Network
+
 if self.is_discrete:
     logits = self.action_head(pi_latent)
     # Categorical distribution allows us to sample discrete actions (0,1,2,3)
     dist = Categorical(logits=logits)
-````
+```
 
-#### 3\. The PPO Update Loop
+#### 3. The PPO Update Loop
 
 The core learning mechanism uses the **Clipped Surrogate Objective**. This forces the update to stay within a safe range, preventing "catastrophic forgetting."
 
-Mathematical Formula:
+**Mathematical Formula:**
 
-$$L^{CLIP}(\\theta) = \\hat{\\mathbb{E}}\_t \[\\min(r\_t(\\theta)\\hat{A}\_t, \\text{clip}(r\_t(\\theta), 1-\\epsilon, 1+\\epsilon)\\hat{A}\_t)\]$$
+$$L^{CLIP}(\theta) = \hat{\mathbb{E}}_t [\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)]$$
 
-Where $r\_t(\\theta)$ is the probability ratio $\\frac{\\pi\_\\theta(a\_t|s\_t)}{\\pi\_{\\theta\_{old}}(a\_t|s\_t)}$.
+Where $r_t(\theta)$ is the probability ratio $\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$.
 
 **Visual Logic (Clipping):**
 
-`Ratio          |      Is ratio > 1.2 ?      /          \    YES          NO     |            |  [Clip to 1.2] [Keep Ratio]     |            |     +-----+------+           |    Multiply by Advantage           |      Update Gradient`
+```text
+   Ratio          |
+      Is ratio > 1.2 ?
+      /           \
+   YES             NO     |
+    |               |
+[Clip to 1.2] [Keep Ratio]     |
+    |               |
+    +-----+------+
+          |
+   Multiply by Advantage
+          |
+    Update Gradient
+```
 
 **Code Snippet:**
 
-````Python
+```python
 # From ppo_scratch.py
+
 # Ratio indicates how much more likely the action is NOW vs. when we collected data
 ratio = th.exp(log_prob - old_log_probs)
 
@@ -176,43 +219,48 @@ policy_loss_1 = advs * ratio
 policy_loss_2 = advs * th.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
 
 # We take the minimum (pessimistic bound) to be safe
-policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()```
+policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()
+```
 
-
-### C. Testing Suite: stress_test_analytics.py
+### C. Testing Suite: `stress_test_analytics.py`
 
 This script runs a rigorous evaluation of the trained model, focusing on edge cases that standard training metrics might miss.
 
-Key Snippet: Critical Battery Initialization
+#### Critical Battery Initialization
 
 To test "Intelligence," we force the robot to start with low battery.
 
-```Python
+```python
 # From stress_test_analytics.py
 start_batt = np.random.uniform(0.15, 1.0) # Randomize battery
 env.battery = start_batt
+
 # Define "Critical" as less than 30% charge
-is_critical = start_batt < 0.30   # Metric tracking logic:
+is_critical = start_batt < 0.30
+
+# Metric tracking logic:
 if is_critical:
     if did_charge: stats["critical_saves"] += 1 # Intelligent behavior
     else: stats["critical_fails"] += 1          # Failed to prioritize survival
-````
+```
 
-## 3\. Results & Performance Analysis
+---
+
+## 3. Results & Performance Analysis
 
 ### A. Training Metrics (Graphs)
 
-We monitored the training process over **2,000,000 timesteps**. Below is the analysis of the resulting graphs.
+We monitored the training process over **2,000,000 timesteps**.
 
-!
+> _[Insert Graph Images Here]_
 
-**Graph 1: Episode Reward (rollout/ep_rew_mean)**
+**Graph 1: Episode Reward (`rollout/ep_rew_mean`)**
 
 - **Trend:** The curve begins at a negative value (due to the -100 death penalty and wandering).
 - **Inflection Point:** Around 250k steps, the reward spikes, indicating the agent has learned to avoid obstacles and find the target.
 - **Convergence:** The reward stabilizes around **143.9**, which represents a near-perfect run (100 Delivery + 20 Pickup + Distance Bonuses - minimal Battery Costs).
 
-**Graph 2: Episode Length (rollout/ep_len_mean)**
+**Graph 2: Episode Length (`rollout/ep_len_mean`)**
 
 - **Trend:** Starts high (~200 steps) as the agent explores randomly.
 - **Convergence:** Drops to **~20 steps** per episode.
@@ -220,15 +268,13 @@ We monitored the training process over **2,000,000 timesteps**. Below is the ana
 
 ### B. Stress Test Results (Quantitative Table)
 
-The model warehouse_strict_agent was subjected to 1,000 randomized test episodes.
+The model `warehouse_strict_agent` was subjected to 1,000 randomized test episodes.
 
-```
-| Metric        | Value    | Interpretation                                      |
-|---------------|----------|------------------------------------------------------|
-| Duration      | 38.06 s  | The model is lightweight and highly performant.     |
-| Success Rate  | 84.20%   | The agent successfully delivers the package most of the time. |
-| Avg Steps     | 23.3     | Matches the theoretical optimal path length for an 8×8 grid. |
-```
+| Metric           | Value   | Interpretation                                                |
+| :--------------- | :------ | :------------------------------------------------------------ |
+| **Duration**     | 38.06 s | The model is lightweight and highly performant.               |
+| **Success Rate** | 84.20%  | The agent successfully delivers the package most of the time. |
+| **Avg Steps**    | 23.3    | Matches the theoretical optimal path length for an 8×8 grid.  |
 
 #### Failure Mode Analysis
 
@@ -247,54 +293,54 @@ This specific metric determines if the agent learned **Priority Management**.
 
 **Conclusion:** The agent successfully learned to prioritize survival over task completion when resources are low. It demonstrates **emergent intelligent behavior**.
 
-## 4\. How to Run
+---
+
+## 4. How to Run
 
 ### Prerequisites
 
 Ensure you have the required libraries installed:
 
-Bash
+```bash
+pip install torch numpy gymnasium stable-baselines3 tensorboard tqdm matplotlib imageio
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`pip install torch numpy gymnasium stable-baselines3 tensorboard tqdm matplotlib imageio`
-
-### 1\. Training the Agent
+### 1. Training the Agent
 
 To train the agent using the robust PPO implementation (SB3 wrapper):
 
-Bash
+```bash
+python train_compare.py
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`python train_compare.py`
+- **Output:** Generates `warehouse_strict_agent.zip` and TensorBoard logs in `./logs/strict/`.
 
-- **Output:** Generates warehouse_strict_agent.zip and TensorBoard logs in ./logs/strict/.
-
-### 2\. Monitoring Training
+### 2. Monitoring Training
 
 To visualize the graphs shown in the report:
 
-Bash
+```bash
+tensorboard --logdir ./logs/
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`tensorboard --logdir ./logs/`
-
-### 3\. Running Stress Tests
+### 3. Running Stress Tests
 
 To generate the detailed statistics table:
 
-Bash
+```bash
+python stress_test_analytics.py
+```
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`python stress_test_analytics.py`
+### 4. Visual Demo (GIF Generation)
 
-### 4\. Visual Demo (GIF Generation)
+To create a video file (`final_presentation_video.gif`) showing the agent in action:
 
-To create a video file (final_presentation_video.gif) showing the agent in action:
+```bash
+python create_demo.py
+```
 
-Bash
+---
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`python create_demo.py`
-
-## 5\. Conclusion
+## 5. Conclusion
 
 This project successfully implements a **Battery-Constrained Autonomous Agent** using Proximal Policy Optimization. By integrating resource constraints into the standard warehouse logistics problem, we created an agent capable of **dynamic decision-making**. The results—specifically the **90.6% survival rate** in critical battery states—demonstrate that Deep Reinforcement Learning is a viable solution for complex, multi-objective robotic control systems.
-
-```
-
-```
