@@ -360,12 +360,12 @@ This specific metric determines if the agent learned **Priority Management**.
 Here is the trained agent in action.
 
 - **Dark Blue Square:** Robot
-- **Yellow Square:** Box
+- **Yellow Suare:** Box
 - **Green Square:** Target Delivery Zone
 - **Cyan Square:** Charging Station
 
 <p align="center">
-  <img src="final_presentation_video.gif" width="600" alt="Agent Demo GIF">
+  <img src="final_presentation_video-looped_inf.gif" width="600" alt="Agent Demo GIF">
   <br>
   <em>Figure 3: The agent successfully identifies low battery (Red Bar), navigates to charge, picks up the package, and delivers it.</em>
 </p>
