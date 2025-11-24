@@ -78,7 +78,6 @@ def _get_obs(self):
 ```
 
 **Key Feature: Reward Shaping**
-
 To prevent sparse reward issues, we implemented specific shaping logic. The step function calculates rewards based on distance changes and battery status.
 
 ```Python
