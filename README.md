@@ -67,14 +67,14 @@ The agent does not see the grid as an image; it sees a normalized vector of 8 va
 #From warehouse_env.py
 
 def _get_obs(self):
-s = self.grid_size
-return np.array([
-self.robot_pos[0] / s, self.robot_pos[1] / s, # Robot Coordinates
-self.box_pos[0] / s, self.box_pos[1] / s, # Box Coordinates
-self.target_pos[0] / s, self.target_pos[1] / s, # Target Coordinates
-1.0 if self.has_box else 0.0, # State Flag
-self.battery # Critical Resource
-], dtype=np.float32)
+    s = self.grid_size
+    return np.array([
+        self.robot_pos[0] / s, self.robot_pos[1] / s, # Robot Coordinates
+        self.box_pos[0] / s, self.box_pos[1] / s, # Box Coordinates
+        self.target_pos[0] / s, self.target_pos[1] / s, # Target Coordinates
+        1.0 if self.has_box else 0.0, # State Flag
+        self.battery # Critical Resource
+    ], dtype=np.float32)
 ```
 
 Key Feature: Reward Shaping
