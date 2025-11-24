@@ -355,6 +355,21 @@ This specific metric determines if the agent learned **Priority Management**.
 - **Dead:** 15
 - **Survival Rate:** **90.6%**
 
+### C. Visual Demonstration
+
+Here is the trained agent in action.
+
+- **Blue Square:** Robot
+- **Yellow Square:** Box
+- **Green Square:** Target Delivery Zone
+- **Cyan Square:** Charging Station
+
+<p align="center">
+  <img src="final_presentation_video.gif" width="600" alt="Agent Demo GIF">
+  <br>
+  <em>Figure 3: The agent successfully identifies low battery (Red Bar), navigates to charge, picks up the package, and delivers it.</em>
+</p>
+
 **Conclusion:** The agent successfully learned to prioritize survival over task completion when resources are low. It demonstrates **emergent intelligent behavior**.
 
 ---
