@@ -77,13 +77,26 @@ def _get_obs(self):
     ], dtype=np.float32)
 ```
 
-_Key Feature: Reward Shaping_
+**Key Feature: Reward Shaping**
 
 To prevent sparse reward issues, we implemented specific shaping logic. The step function calculates rewards based on distance changes and battery status.
 
-Python
+```Python
+# From warehouse_env.py
+# 1. BATTERY DRAIN
+drain = 0.005 if not self.has_box else 0.01 # Drain faster if carrying load
+self.battery -= drain
+# 2. CHARGING LOGIC
+if new_pos == self.charger_pos:
+    self.battery = 1.0
+    if not self.charge_cooldown:
+        reward += 10.0 # Incentive to charge, but only if needed
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`# From warehouse_env.py  # 1. BATTERY DRAIN  drain = 0.005 if not self.has_box else 0.01 # Drain faster if carrying load  self.battery -= drain  # 2. CHARGING LOGIC  if new_pos == self.charger_pos:      self.battery = 1.0      if not self.charge_cooldown:          reward += 10.0 # Incentive to charge, but only if needed  # 3. TERMINAL PENALTY  if self.battery <= 0:      reward += -100.0 # Massive penalty for death      terminated = True`
+# 3. TERMINAL PENALTY
+if self.battery <= 0:
+    reward += -100.0 # Massive penalty for death
+    terminated = True
+```
 
 _Explanation:_ The code explicitly penalizes carrying a box to simulate weight/physics physics. The charging logic includes a cooldown to prevent the agent from "camping" on the charger to farm infinite rewards.
 
