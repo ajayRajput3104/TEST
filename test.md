@@ -9,7 +9,7 @@ A comprehensive implementation of a **Proximal Policy Optimization (PPO)** agent
 
 | Name            | Roll Number | Branch |
 | --------------- | ----------- | ------ |
-| Ganesh Bhabad   | 22BDS067    | DSAI   |
+| GANESH BHABAD   | 22BDS067    | DSAI   |
 | AJAY RAJPUT     | 22BDS049    | DSAI   |
 | ANIKET SHELKE   | 22BCS010    | CSE    |
 | SHIVRAJ JAGDALE | 22BCS118    | CSE    |
@@ -311,10 +311,7 @@ if is_critical:
 We monitored the training process over **2,000,000 timesteps**.
 
 <p align="center">
-  <img src="TEST/graphs.jpeg"
- width="600" title="hover text">
-  <br>
-  <em>Figure 1: Caption for your image</em>
+  <img src="graph2.jpeg" width="600" title="Architecture Diagram">
 </p>
 
 **Graph 1: Episode Reward (`rollout/ep_rew_mean`)**
@@ -322,6 +319,10 @@ We monitored the training process over **2,000,000 timesteps**.
 - **Trend:** The curve begins at a negative value (due to the -100 death penalty and wandering).
 - **Inflection Point:** Around 250k steps, the reward spikes, indicating the agent has learned to avoid obstacles and find the target.
 - **Convergence:** The reward stabilizes around **143.9**, which represents a near-perfect run (100 Delivery + 20 Pickup + Distance Bonuses - minimal Battery Costs).
+
+<p align="center">
+  <img src="graph1.jpeg" width="600" title="Architecture Diagram">
+</p>
 
 **Graph 2: Episode Length (`rollout/ep_len_mean`)**
 
