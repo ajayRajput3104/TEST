@@ -81,7 +81,7 @@ We utilize an **Actor-Critic** architecture. This means the Neural Network has t
 
 **Visual Architecture Diagram:**
 
-````text
+```text
        [ INPUT LAYER ]
      (8 normalized floats)
              |
@@ -100,25 +100,28 @@ We utilize an **Actor-Critic** architecture. This means the Neural Network has t
     v                 v
 [ ACTION PROBS ]   [ STATE VALUE ]
  (4 probabilities)    (1 Scalar)
+```
 
 #### Explanation of Outputs
 
 **A. The Actor Head (Policy $\pi_\theta$)**
-* **Role:** The "Doer." It decides what action to take.
-* **Output:** A vector of 4 probabilities (summing to $1.0$).
-* **Formula:** It uses the **Softmax** function to convert raw network logits ($z$) into probabilities:
-    $$\pi(a_i|s) = \frac{e^{z_i}}{\sum_{j=0}^{3} e^{z_j}}$$
-* **Selection:**
-    * *Training:* We **sample** from this distribution (enables exploration).
-    * *Testing:* We take the **argmax** (highest probability).
+
+- **Role:** The "Doer." It decides what action to take.
+- **Output:** A vector of 4 probabilities (summing to $1.0$).
+- **Formula:** It uses the **Softmax** function to convert raw network logits ($z$) into probabilities:
+  $$\pi(a_i|s) = \frac{e^{z_i}}{\sum_{j=0}^{3} e^{z_j}}$$
+- **Selection:**
+  - _Training:_ We **sample** from this distribution (enables exploration).
+  - _Testing:_ We take the **argmax** (highest probability).
 
 **B. The Critic Head (Value Function $V_\phi$)**
-* **Role:** The "Coach." It estimates how good the current state is.
-* **Output:** A single scalar number (e.g., $15.5$ or $-2.0$).
-* **Meaning:** It predicts the **Discounted Future Return** (total reward the agent expects to get from this point until the end of the episode).
-* **Formula:**
-    $$V(s) \approx \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \right]$$
-* **Why it's needed:** The Critic's prediction is compared against the actual reward received to calculate the **Advantage** (did we do better or worse than expected?), which is used to train the Actor.
+
+- **Role:** The "Coach." It estimates how good the current state is.
+- **Output:** A single scalar number (e.g., $15.5$ or $-2.0$).
+- **Meaning:** It predicts the **Discounted Future Return** (total reward the agent expects to get from this point until the end of the episode).
+- **Formula:**
+  $$V(s) \approx \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \right]$$
+- **Why it's needed:** The Critic's prediction is compared against the actual reward received to calculate the **Advantage** (did we do better or worse than expected?), which is used to train the Actor.
 
 **Code Snippet:**
 
@@ -134,7 +137,7 @@ def _get_obs(self):
         1.0 if self.has_box else 0.0,                   # State Flag
         self.battery                                    # Critical Resource
     ], dtype=np.float32)
-````
+```
 
 #### Key Feature: Reward Shaping
 
